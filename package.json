@@ -1,5 +1,5 @@
 {
-  "name": "api-keys-firebase",
+  "name": "api-keys-lr-store",
   "version": "1.0.0",
   "main": "server.js",
   "dependencies": {
