@@ -66,10 +66,12 @@ function carregar() {
     .then(res => res.json())
     .then(data => {
         let html = "";
+        if (Object.keys(data).length === 0) {
+            html = "<p>Nenhuma key encontrada no banco de dados.</p>";
+        }
 
         for (let k in data) {
             let restante = data[k].expira - Date.now();
-
             if (restante < 0) restante = 0;
 
             let dias = Math.floor(restante / (1000*60*60*24));
@@ -79,12 +81,15 @@ function carregar() {
             <div class="key">
                 <b>${k}</b><br>
                 ⏳ ${dias}d ${horas}h restantes<br>
-                <button onclick="deletar('${k}')">Deletar</button>
+                <small>HWID: ${data[k].hwid || "Livre"}</small><br>
+                <button onclick="deletar('${k}')" style="background:#ff4444">Deletar</button>
             </div>
             `;
         }
-
         document.getElementById("lista").innerHTML = html;
+    })
+    .catch(err => {
+        document.getElementById("lista").innerHTML = "<p style='color:red'>Erro ao conectar com a API</p>";
     });
 }
 
