@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Painel Keys</title>
+    <style>
+        body {
+            background: #0f0f0f;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+        }
+        button {
+            background: #00ff88;
+            cursor: pointer;
+        }
+        .key {
+            background: #1a1a1a;
+            margin: 10px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🔐 Painel de Keys</h1>
+
+<h3>Criar Key</h3>
+<input id="key" placeholder="Nome da key">
+<input id="dias" placeholder="Dias">
+<button onclick="criar()">Criar</button>
+
+<h3>Lista de Keys</h3>
+<div id="lista"></div>
+
+<script>
+const API = "https://api-keys-tyap.onrender.com";
+
+function criar() {
+    const key = document.getElementById("key").value;
+    const dias = document.getElementById("dias").value;
+
+    fetch(API + "/criarkey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, dias })
+    }).then(() => {
+        alert("Key criada!");
+        carregar();
+    });
+}
+
+function deletar(k) {
+    fetch(API + "/delete?key=" + k)
+    .then(() => carregar());
+}
+
+function carregar() {
+    fetch(API + "/keys")
+    .then(res => res.json())
+    .then(data => {
+        let html = "";
+
+        for (let k in data) {
+            let restante = data[k].expira - Date.now();
+            let dias = Math.floor(restante / (1000*60*60*24));
+
+            html += `
+            <div class="key">
+                <b>${k}</b><br>
+                ⏳ ${dias} dias restantes<br>
+                <button onclick="deletar('${k}')">Deletar</button>
+            </div>
+            `;
+        }
+
+        document.getElementById("lista").innerHTML = html;
+    });
+}
+
+carregar();
+</script>
+
+</body>
+</html>
