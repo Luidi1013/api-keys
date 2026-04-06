@@ -19,22 +19,24 @@
         <hr>
         <div id="lista"></div>
     </div>
-
     <script>
+        const API = window.location.origin;
+
         async function criar() {
             const key = document.getElementById("k").value;
             const dias = document.getElementById("d").value;
-            await fetch("/criarkey", {
+            if(!key || !dias) return alert("Preencha os campos!");
+            await fetch(API + "/criarkey", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ key, dias })
             });
-            alert("Key solicitada!");
+            alert("Key criada!");
             carregar();
         }
 
         async function carregar() {
-            const res = await fetch("/keys");
+            const res = await fetch(API + "/keys");
             const data = await res.json();
             let h = "";
             for (let k in data) {
@@ -47,7 +49,7 @@
         }
 
         async function del(k) {
-            await fetch("/delete?key=" + k);
+            await fetch(API + "/delete?key=" + k);
             carregar();
         }
         setInterval(carregar, 5000);

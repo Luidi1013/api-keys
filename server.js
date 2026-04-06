@@ -6,7 +6,6 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Tenta carregar a chave do Firebase
 try {
     const serviceAccount = require("./firebase-key.json");
     admin.initializeApp({
@@ -36,21 +35,16 @@ app.get("/keys", async (req, res) => {
     try {
         const snapshot = await ref.once("value");
         res.json(snapshot.val() || {});
-    } catch (e) {
-        res.json({});
-    }
+    } catch (e) { res.json({}); }
 });
 
 app.get("/delete", async (req, res) => {
     try {
         await ref.child(req.query.key).remove();
         res.json({ status: "deletado" });
-    } catch (e) {
-        res.json({ error: e.message });
-    }
+    } catch (e) { res.json({ error: e.message }); }
 });
 
-// Rota para o Roblox verificar
 app.get("/verificar", async (req, res) => {
     const keyNome = req.query.key;
     const hwid = req.query.hwid || "unknown";
@@ -66,9 +60,7 @@ app.get("/verificar", async (req, res) => {
             return res.json({ status: "bloqueada" });
         }
         res.json({ status: "valida", expira: data.expira });
-    } catch (e) {
-        res.json({ status: "erro" });
-    }
+    } catch (e) { res.json({ status: "erro" }); }
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("🚀 Servidor Online"));
