@@ -68,3 +68,6 @@ app.get("/verificar", (req, res) => {
 app.listen(3000, () => {
     console.log("API ON na porta 3000");
 });
+
+app.use(express.static(__dirname));
+app.use(express.json());
