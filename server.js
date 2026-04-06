@@ -6,12 +6,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-const connectionString = "postgres://postgres:[LUIDI_RIBEIRO]@db.tcnoqdnzhcbnksmqkjlp.supabase.co:5432/postgres";
+// 🔗 Connection String com sua senha aplicada
+const connectionString = "postgres://postgres:LUIDI%20RIBEIRO@db.tcnoqdnzhcbnksmqkjlp.supabase.co:5432/postgres";
 
 const pool = new Pool({
   connectionString: connectionString,
 });
 
+// Cria a tabela automaticamente se não existir no Supabase
 const setupDB = async () => {
     try {
         await pool.query(`
@@ -21,13 +23,14 @@ const setupDB = async () => {
                 hwid TEXT
             )
         `);
-        console.log("✅ Banco de Dados Supabase conectado!");
+        console.log("✅ Banco de Dados Supabase Conectado e Pronto!");
     } catch (err) {
-        console.error("❌ Erro ao conectar no banco:", err);
+        console.error("❌ Erro ao conectar no Supabase:", err);
     }
 };
 setupDB();
 
+// 🔑 Rota para Criar Key (Usada pelo seu index.html)
 app.post("/criarkey", async (req, res) => {
     const { key, dias } = req.body;
     if (!key || !dias) return res.json({ status: "erro" });
@@ -42,6 +45,7 @@ app.post("/criarkey", async (req, res) => {
     } catch (e) { res.json({ status: "erro" }); }
 });
 
+// 🔍 Rota de Verificação (Usada pelo seu menu.lua)
 app.get("/verificar", async (req, res) => {
     const keyNome = req.query.key;
     const hwid = req.query.hwid || "unknown";
@@ -63,18 +67,25 @@ app.get("/verificar", async (req, res) => {
     } catch (e) { res.json({ status: "erro" }); }
 });
 
+// 📊 Listar chaves para o painel
 app.get("/keys", async (req, res) => {
-    const result = await pool.query("SELECT * FROM keys");
-    let obj = {};
-    result.rows.forEach(k => {
-        obj[k.nome] = { expira: k.expira, hwid: k.hwid };
-    });
-    res.json(obj);
+    try {
+        const result = await pool.query("SELECT * FROM keys");
+        let obj = {};
+        result.rows.forEach(k => {
+            obj[k.nome] = { expira: k.expira, hwid: k.hwid };
+        });
+        res.json(obj);
+    } catch (e) { res.json({}); }
 });
 
+// 🗑 Deletar chave
 app.get("/delete", async (req, res) => {
-    await pool.query("DELETE FROM keys WHERE nome = $1", [req.query.key]);
-    res.json({ status: "deletada" });
+    try {
+        await pool.query("DELETE FROM keys WHERE nome = $1", [req.query.key]);
+        res.json({ status: "deletada" });
+    } catch (e) { res.json({ status: "erro" }); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("🚀 API PRO ON"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("🚀 API ONLINE E SEGURA"));
