@@ -69,12 +69,16 @@ function carregar() {
 
         for (let k in data) {
             let restante = data[k].expira - Date.now();
+
+            if (restante < 0) restante = 0;
+
             let dias = Math.floor(restante / (1000*60*60*24));
+            let horas = Math.floor((restante / (1000*60*60)) % 24);
 
             html += `
             <div class="key">
                 <b>${k}</b><br>
-                ⏳ ${dias} dias restantes<br>
+                ⏳ ${dias}d ${horas}h restantes<br>
                 <button onclick="deletar('${k}')">Deletar</button>
             </div>
             `;
@@ -84,6 +88,7 @@ function carregar() {
     });
 }
 
+setInterval(carregar, 5000);
 carregar();
 </script>
 
