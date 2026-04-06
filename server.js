@@ -1,79 +1,80 @@
 const express = require("express");
-const fs = require("fs");
+const { Pool } = require("pg");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
+app.use(express.static(__dirname));
 
-let keys = {};
+const connectionString = "postgres://postgres:[LUIDI_RIBEIRO]@db.tcnoqdnzhcbnksmqkjlp.supabase.co:5432/postgres";
 
-if (fs.existsSync("keys.json")) {
-    keys = JSON.parse(fs.readFileSync("keys.json"));
-}
+const pool = new Pool({
+  connectionString: connectionString,
+});
 
-function salvar() {
-    fs.writeFileSync("keys.json", JSON.stringify(keys, null, 2));
-}
+const setupDB = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS keys (
+                nome TEXT PRIMARY KEY,
+                expira BIGINT,
+                hwid TEXT
+            )
+        `);
+        console.log("✅ Banco de Dados Supabase conectado!");
+    } catch (err) {
+        console.error("❌ Erro ao conectar no banco:", err);
+    }
+};
+setupDB();
 
-// 🔑 Criar key
-app.post("/criarkey", (req, res) => {
+app.post("/criarkey", async (req, res) => {
     const { key, dias } = req.body;
-
     if (!key || !dias) return res.json({ status: "erro" });
 
     const expira = Date.now() + (parseInt(dias) * 86400000);
-
-    keys[key] = {
-        expira: expira,
-        hwid: null
-    };
-
-    salvar();
-
-    res.json({ status: "ok" });
+    try {
+        await pool.query(
+            "INSERT INTO keys (nome, expira, hwid) VALUES ($1, $2, $3) ON CONFLICT (nome) DO UPDATE SET expira = $2, hwid = NULL",
+            [key, expira, null]
+        );
+        res.json({ status: "ok" });
+    } catch (e) { res.json({ status: "erro" }); }
 });
 
-// 🔍 Verificar key + salvar HWID
-app.get("/verificar", (req, res) => {
-    const key = req.query.key;
+app.get("/verificar", async (req, res) => {
+    const keyNome = req.query.key;
     const hwid = req.query.hwid || "unknown";
 
-    if (!keys[key]) return res.json({ status: "invalida" });
+    try {
+        const result = await pool.query("SELECT * FROM keys WHERE nome = $1", [keyNome]);
+        const data = result.rows[0];
 
-    if (Date.now() > keys[key].expira)
-        return res.json({ status: "expirada" });
+        if (!data) return res.json({ status: "invalida" });
+        if (Date.now() > data.expira) return res.json({ status: "expirada" });
 
-    // 🔐 Anti compartilhamento
-    if (!keys[key].hwid) {
-        keys[key].hwid = hwid;
-        salvar();
-    } else if (keys[key].hwid !== hwid) {
-        return res.json({ status: "bloqueada" });
-    }
+        if (!data.hwid) {
+            await pool.query("UPDATE keys SET hwid = $1 WHERE nome = $2", [hwid, keyNome]);
+        } else if (data.hwid !== hwid) {
+            return res.json({ status: "bloqueada" });
+        }
 
-    res.json({
-        status: "valida",
-        expira: keys[key].expira
+        res.json({ status: "valida", expira: data.expira });
+    } catch (e) { res.json({ status: "erro" }); }
+});
+
+app.get("/keys", async (req, res) => {
+    const result = await pool.query("SELECT * FROM keys");
+    let obj = {};
+    result.rows.forEach(k => {
+        obj[k.nome] = { expira: k.expira, hwid: k.hwid };
     });
+    res.json(obj);
 });
 
-// 📊 Listar keys
-app.get("/keys", (req, res) => {
-    res.json(keys);
-});
-
-// 🗑 Deletar key
-app.get("/delete", (req, res) => {
-    const key = req.query.key;
-
-    if (!keys[key]) return res.json({ status: "nao_existe" });
-
-    delete keys[key];
-    salvar();
-
+app.get("/delete", async (req, res) => {
+    await pool.query("DELETE FROM keys WHERE nome = $1", [req.query.key]);
     res.json({ status: "deletada" });
 });
 
-app.listen(3000, () => console.log("API PRO ON"));
-
-app.use(express.static(__dirname));
-app.use(express.json());
+app.listen(process.env.PORT || 3000, () => console.log("🚀 API PRO ON"));
