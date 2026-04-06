@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // 🔗 Connection String com sua senha aplicada
-const connectionString = "postgres://postgres:LUIDI%20RIBEIRO@db.tcnoqdnzhcbnksmqkjlp.supabase.co:5432/postgres";
+const connectionString = "postgres://postgres:LUIDI%20RIBEIRO@db.tcnoqdnzhcbnksmqkjlp.supabase.co:5432/postgres?sslmode=require";
 
 const pool = new Pool({
   connectionString: connectionString,
