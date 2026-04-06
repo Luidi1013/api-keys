@@ -1,81 +1,57 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Painel de Keys - LR Store</title>
+    <title>Painel LR Store</title>
     <style>
-        body { background: #0b0b0b; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: #151515; padding: 20px; border-radius: 15px; border: 1px solid #00ff88; }
-        input, button { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; }
-        input { background: #222; color: white; }
-        button { background: #00ff88; color: black; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #00cc6e; }
-        .key-card { background: #222; padding: 15px; margin: 10px 0; border-radius: 10px; text-align: left; position: relative; }
-        .btn-del { background: #ff4444; width: auto; padding: 5px 10px; font-size: 12px; float: right; }
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; }
+        .box { background: #111; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 50px; border: 1px solid #0f8; }
+        input, button { padding: 10px; margin: 5px; border-radius: 5px; border: none; }
+        button { background: #0f8; cursor: pointer; font-weight: bold; }
+        .key-item { background: #222; padding: 10px; margin: 10px; border-radius: 5px; border-left: 5px solid #0f8; text-align: left; }
     </style>
 </head>
 <body>
+    <div class="box">
+        <h1>🔐 Gerador de Keys</h1>
+        <input id="k" placeholder="Nome da Key">
+        <input id="d" type="number" placeholder="Dias">
+        <button onclick="criar()">CRIAR</button>
+        <hr>
+        <div id="lista"></div>
+    </div>
 
-<div class="container">
-    <h1>🔐 Gerenciador de Keys</h1>
-    <input type="text" id="keyName" placeholder="Nome da Key (ex: LUIDI-XYZ)">
-    <input type="number" id="keyDays" placeholder="Dias de validade">
-    <button onclick="criar()">GERAR NOVA KEY</button>
-    <hr>
-    <div id="lista">Carregando chaves...</div>
-</div>
-
-<script>
-    const API = window.location.origin; // Detecta automaticamente o link do Render
-
-    async function criar() {
-        const key = document.getElementById("keyName").value;
-        const dias = document.getElementById("keyDays").value;
-        if(!key || !dias) return alert("Preencha tudo!");
-
-        try {
-            const res = await fetch("/criarkey", {
+    <script>
+        async function criar() {
+            const key = document.getElementById("k").value;
+            const dias = document.getElementById("d").value;
+            await fetch("/criarkey", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({ key, dias })
             });
-            if(res.ok) {
-                alert("✅ Key criada!");
-                carregar();
-            } else { alert("❌ Erro ao criar."); }
-        } catch (e) { alert("❌ Servidor offline."); }
-    }
-
-    async function deletar(k) {
-        if(confirm("Deseja deletar?")) {
-            await fetch(`/delete?key=${k}`);
+            alert("Key solicitada!");
             carregar();
         }
-    }
 
-    async function carregar() {
-        try {
+        async function carregar() {
             const res = await fetch("/keys");
             const data = await res.json();
-            let html = "";
-            
+            let h = "";
             for (let k in data) {
-                let rest = data[k].expira - Date.now();
-                let dias = Math.max(0, Math.floor(rest / (1000*60*60*24)));
-                html += `
-                <div class="key-card">
-                    <button class="btn-del" onclick="deletar('${k}')">X</button>
-                    <b>Key:</b> ${k}<br>
-                    <b>Validade:</b> ${dias} dias<br>
-                    <small>HWID: ${data[k].hwid || "Aguardando..."}</small>
+                h += `<div class="key-item">
+                    <b>${k}</b> | HWID: ${data[k].hwid || 'Livre'}<br>
+                    <button onclick="del('${k}')" style="background:red;color:white">Deletar</button>
                 </div>`;
             }
-            document.getElementById("lista").innerHTML = html || "Nenhuma key ativa.";
-        } catch (e) { document.getElementById("lista").innerHTML = "Erro ao carregar."; }
-    }
+            document.getElementById("lista").innerHTML = h;
+        }
 
-    setInterval(carregar, 10000);
-    carregar();
-</script>
+        async function del(k) {
+            await fetch("/delete?key=" + k);
+            carregar();
+        }
+        setInterval(carregar, 5000);
+        carregar();
+    </script>
 </body>
 </html>
