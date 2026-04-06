@@ -4,58 +4,50 @@ const fs = require("fs");
 const app = express();
 app.use(express.json());
 
-// carregar keys
 let keys = {};
 
 if (fs.existsSync("keys.json")) {
     keys = JSON.parse(fs.readFileSync("keys.json"));
 }
 
-// salvar keys
 function salvar() {
     fs.writeFileSync("keys.json", JSON.stringify(keys, null, 2));
 }
 
-// criar key
+// 🔑 Criar key
 app.post("/criarkey", (req, res) => {
     const { key, dias } = req.body;
 
-    if (!key || !dias) {
-        return res.json({ status: "erro", msg: "dados inválidos" });
-    }
+    if (!key || !dias) return res.json({ status: "erro" });
 
-    const diasNumero = parseInt(dias);
-    if (isNaN(diasNumero)) {
-        return res.json({ status: "erro", msg: "dias inválido" });
-    }
-
-    const expira = Date.now() + (diasNumero * 86400000);
+    const expira = Date.now() + (parseInt(dias) * 86400000);
 
     keys[key] = {
-        expira: expira
+        expira: expira,
+        hwid: null
     };
 
     salvar();
 
-    res.json({
-        status: "ok",
-        key: key,
-        expira: expira
-    });
+    res.json({ status: "ok" });
 });
 
-// verificar key
+// 🔍 Verificar key + salvar HWID
 app.get("/verificar", (req, res) => {
     const key = req.query.key;
+    const hwid = req.query.hwid || "unknown";
 
-    if (!key || !keys[key]) {
-        return res.json({ status: "invalida" });
-    }
+    if (!keys[key]) return res.json({ status: "invalida" });
 
-    const agora = Date.now();
-
-    if (agora > keys[key].expira) {
+    if (Date.now() > keys[key].expira)
         return res.json({ status: "expirada" });
+
+    // 🔐 Anti compartilhamento
+    if (!keys[key].hwid) {
+        keys[key].hwid = hwid;
+        salvar();
+    } else if (keys[key].hwid !== hwid) {
+        return res.json({ status: "bloqueada" });
     }
 
     res.json({
@@ -64,10 +56,24 @@ app.get("/verificar", (req, res) => {
     });
 });
 
-// iniciar servidor
-app.listen(3000, () => {
-    console.log("API ON na porta 3000");
+// 📊 Listar keys
+app.get("/keys", (req, res) => {
+    res.json(keys);
 });
+
+// 🗑 Deletar key
+app.get("/delete", (req, res) => {
+    const key = req.query.key;
+
+    if (!keys[key]) return res.json({ status: "nao_existe" });
+
+    delete keys[key];
+    salvar();
+
+    res.json({ status: "deletada" });
+});
+
+app.listen(3000, () => console.log("API PRO ON"));
 
 app.use(express.static(__dirname));
 app.use(express.json());
