@@ -4,72 +4,57 @@
     <title>Painel LR Store</title>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; text-align: center; }
-        .box { background: #111; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 50px; border: 1px solid #0f8; width: 300px; }
-        input, button { padding: 12px; margin: 8px 0; border-radius: 5px; border: none; width: 100%; box-sizing: border-box; }
-        button { background: #0f8; cursor: pointer; font-weight: bold; color: #000; }
-        .key-item { background: #222; padding: 10px; margin: 10px 0; border-radius: 5px; border-left: 5px solid #0f8; text-align: left; font-size: 14px; }
-        .del-btn { background: #ff4444; color: #fff; padding: 4px 8px; border-radius: 3px; cursor: pointer; float: right; width: auto; font-size: 12px; }
+        .box { background: #111; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 50px; border: 1px solid #0f8; }
+        input, button { padding: 10px; margin: 5px; border-radius: 5px; border: none; }
+        button { background: #0f8; cursor: pointer; font-weight: bold; }
+        .key-item { background: #222; padding: 10px; margin: 10px; border-radius: 5px; border-left: 5px solid #0f8; text-align: left; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h1>🔐 Gerador LR</h1>
+        <h1>🔐 Gerador de Keys | LR Store</h1>
         <input id="k" placeholder="Nome da Key">
-        <input id="d" type="number" placeholder="Quantidade de Dias">
-        <button id="btnCriar" onclick="criar()">CRIAR KEY</button>
+        <input id="d" type="number" placeholder="Dias">
+        <button onclick="criar()">CRIAR</button>
         <hr>
-        <div id="lista">Carregando chaves...</div>
+        <div id="lista"></div>
     </div>
-
     <script>
         const API = window.location.origin;
 
-async function criar() {
-    const key = document.getElementById("k").value;
-    const dias = document.getElementById("d").value;
-    if(!key || !dias) return alert("Preencha os campos!");
+        async function criar() {
+            const key = document.getElementById("k").value;
+            const dias = document.getElementById("d").value;
+            if(!key || !dias) return alert("Preencha os campos!");
+            
+            const response = await fetch(API + "/criarkey", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ key, dias })
+            });
 
-    const response = await fetch(API + "/criarkey", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ key, dias })
-    });
-
-    if (response.ok) {
-        alert("✅ Key salva com sucesso no banco de dados!");
-        carregar();
-    } else {
-        alert("❌ Erro ao salvar key.");
-    }
-}
-
-        async function carregar() {
-            try {
-                const res = await fetch(`${API}/keys`);
-                const data = await res.json();
-                let html = "";
-                for (let k in data) {
-                    html += `<div class="key-item">
-                        <button class="del-btn" onclick="del('${k}')">DEL</button>
-                        <b>${k}</b><br>
-                        <small>HWID: ${data[k].hwid || 'Livre'}</small>
-                    </div>`;
-                }
-                document.getElementById("lista").innerHTML = html || "<i>Nenhuma key ativa.</i>";
-            } catch (e) {
-                document.getElementById("lista").innerHTML = "Erro ao carregar.";
-            }
-        }
-
-        async function del(k) {
-            if(confirm("Deletar a key " + k + "?")) {
-                await fetch(`${API}/delete?key=${k}`);
+            if (response.ok) {
+                alert("Key salva no banco de dados!");
                 carregar();
             }
         }
 
+        async function carregar() {
+            const res = await fetch(API + "/keys");
+            const data = await res.json();
+            let h = "";
+            for (let k in data) {
+                h += `<div class="key-item"><b>${k}</b> | HWID: ${data[k].hwid || 'Livre'}<br>
+                    <button onclick="del('${k}')" style="background:red;color:white">Deletar</button></div>`;
+            }
+            document.getElementById("lista").innerHTML = h;
+        }
+
+        async function del(k) {
+            await fetch(API + "/delete?key=" + k);
+            carregar();
+        }
         carregar();
-        setInterval(carregar, 15000);
     </script>
 </body>
 </html>
