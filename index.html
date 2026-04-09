@@ -24,39 +24,24 @@
     <script>
         const API = window.location.origin;
 
-        async function criar() {
-            const key = document.getElementById("k").value;
-            const dias = document.getElementById("d").value;
-            const btn = document.getElementById("btnCriar");
+async function criar() {
+    const key = document.getElementById("k").value;
+    const dias = document.getElementById("d").value;
+    if(!key || !dias) return alert("Preencha os campos!");
 
-            if(!key || !dias) return alert("Preencha os campos!");
+    const response = await fetch(API + "/criarkey", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ key, dias })
+    });
 
-            btn.disabled = true;
-            btn.innerText = "CRIANDO...";
-
-            try {
-                const res = await fetch(`${API}/criarkey`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ key, dias })
-                });
-
-                if (res.ok) {
-                    alert("✅ Key criada!");
-                    document.getElementById("k").value = "";
-                    document.getElementById("d").value = "";
-                    carregar();
-                } else {
-                    const errorData = await res.json();
-                    alert("❌ Erro: " + (errorData.error || "Falha no servidor"));
-                }
-            } catch (err) {
-                alert("❌ Erro de conexão com a API.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "CRIAR KEY";
-            }
-        }
+    if (response.ok) {
+        alert("✅ Key salva com sucesso no banco de dados!");
+        carregar();
+    } else {
+        alert("❌ Erro ao salvar key.");
+    }
+}
 
         async function carregar() {
             try {
