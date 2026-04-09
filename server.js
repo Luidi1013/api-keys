@@ -14,7 +14,7 @@ try {
     });
     console.log("✅ Conectado ao Firebase!");
 } catch (e) {
-    console.log("❌ Erro ao ler arquivo firebase-key.json: " + e.message);
+    console.log("❌ Erro no Firebase-key: " + e.message);
 }
 
 const db = admin.database();
@@ -23,9 +23,11 @@ const ref = db.ref("keys");
 app.post("/criarkey", async (req, res) => {
     try {
         const { key, dias } = req.body;
+        if (!key || !dias) return res.status(400).json({ error: "Dados faltando" });
+        
         const expira = Date.now() + (parseInt(dias) * 86400000);
         await ref.child(key).set({ expira, hwid: null });
-        res.json({ status: "ok" });
+        res.status(200).json({ status: "ok" });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
