@@ -6,8 +6,9 @@
         body { background: #000; color: #fff; font-family: sans-serif; text-align: center; }
         .box { background: #111; padding: 20px; border-radius: 10px; display: inline-block; margin-top: 50px; border: 1px solid #0f8; }
         input, button { padding: 10px; margin: 5px; border-radius: 5px; border: none; }
-        button { background: #0f8; cursor: pointer; font-weight: bold; }
-        .key-item { background: #222; padding: 10px; margin: 10px; border-radius: 5px; border-left: 5px solid #0f8; text-align: left; }
+        button { background: #0f8; cursor: pointer; font-weight: bold; color: #000; }
+        .key-item { background: #222; padding: 10px; margin: 10px; border-radius: 5px; border-left: 5px solid #0f8; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+        .del-btn { background: #ff4444; color: white; padding: 5px 10px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -15,44 +16,71 @@
         <h1>🔐 Gerador de Keys | LR Store</h1>
         <input id="k" placeholder="Nome da Key">
         <input id="d" type="number" placeholder="Dias">
-        <button onclick="criar()">CRIAR</button>
+        <button onclick="criar()">CRIAR KEY</button>
         <hr>
-        <div id="lista"></div>
+        <div id="lista">Carregando chaves...</div>
     </div>
+
     <script>
+        // Força a URL correta baseada no navegador
         const API = window.location.origin;
 
         async function criar() {
-            const key = document.getElementById("k").value;
-            const dias = document.getElementById("d").value;
-            if(!key || !dias) return alert("Preencha os campos!");
-            await fetch(API + "/criarkey", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ key, dias })
-            });
-            alert("Key criada!");
-            carregar();
+            const keyInput = document.getElementById("k");
+            const diasInput = document.getElementById("d");
+            
+            if(!keyInput.value || !diasInput.value) return alert("Preencha todos os campos!");
+
+            try {
+                const res = await fetch(`${API}/criarkey`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ key: keyInput.value, dias: diasInput.value })
+                });
+
+                if(res.ok) {
+                    alert("✅ Key criada com sucesso!");
+                    keyInput.value = "";
+                    carregar();
+                } else {
+                    alert("❌ Erro ao criar: " + res.statusText);
+                }
+            } catch (err) {
+                alert("❌ Erro de conexão com o servidor.");
+            }
         }
 
         async function carregar() {
-            const res = await fetch(API + "/keys");
-            const data = await res.json();
-            let h = "";
-            for (let k in data) {
-                h += `<div class="key-item">
-                    <b>${k}</b> | HWID: ${data[k].hwid || 'Livre'}<br>
-                    <button onclick="del('${k}')" style="background:red;color:white">Deletar</button>
-                </div>`;
+            try {
+                const res = await fetch(`${API}/keys`);
+                const data = await res.json();
+                let html = "";
+                
+                if (Object.keys(data).length === 0) {
+                    html = "<i>Nenhuma key encontrada.</i>";
+                } else {
+                    for (let k in data) {
+                        html += `
+                        <div class="key-item">
+                            <span><b>${k}</b><br><small>HWID: ${data[k].hwid || 'Livre'}</small></span>
+                            <button class="del-btn" onclick="del('${k}')">Deletar</button>
+                        </div>`;
+                    }
+                }
+                document.getElementById("lista").innerHTML = html;
+            } catch (err) {
+                document.getElementById("lista").innerHTML = "Erro ao carregar lista.";
             }
-            document.getElementById("lista").innerHTML = h;
         }
 
         async function del(k) {
-            await fetch(API + "/delete?key=" + k);
+            if(!confirm("Deseja apagar esta key?")) return;
+            await fetch(`${API}/delete?key=${k}`);
             carregar();
         }
-        setInterval(carregar, 5000);
+
+        // Atualiza a cada 10 segundos
+        setInterval(carregar, 10000);
         carregar();
     </script>
 </body>
