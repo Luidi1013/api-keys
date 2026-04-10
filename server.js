@@ -7,28 +7,25 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 try {
-    // O Render guarda arquivos secretos em /etc/secrets/
+    // Caminho onde o Render guarda arquivos secretos
     const secretPath = "/etc/secrets/firebase-key.json";
     let serviceAccount;
 
     if (fs.existsSync(secretPath)) {
         serviceAccount = JSON.parse(fs.readFileSync(secretPath, "utf8"));
-        console.log("✅ Carregando chave dos Secrets do Render");
     } else {
+        // Fallback para desenvolvimento local
         serviceAccount = require("./firebase-key.json");
-        console.log("⚠️ Carregando chave do repositório (Local/GitHub)");
     }
 
-    // Corrige a formatação da private_key
-    if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    }
+    // Corrige quebras de linha que costumam dar erro de assinatura
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: "https://painel-keys-lr-store-default-rtdb.firebaseio.com/"
     });
-    console.log("✅ Conectado ao Firebase com sucesso!");
+    console.log("✅ Conectado ao Firebase via Secret File!");
 } catch (e) {
     console.log("❌ Erro de Autenticação: " + e.message);
 }
